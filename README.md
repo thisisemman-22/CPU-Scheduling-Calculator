@@ -1,13 +1,13 @@
 # Comprehensive CPU Scheduling Algorithm Calculator
 
-A beautiful, modern Single Page Application (SPA) built with React and Tailwind CSS to calculate and visualize various CPU scheduling algorithms. 
+A Single Page Application (SPA) built with React and Tailwind CSS to calculate and visualize various CPU scheduling algorithms. 
 
 ## Features
 
 - **6 Core Algorithms**: First-Come First-Serve (FCFS), Shortest Job First (SJF - Non-Preemptive), Shortest Remaining Time First (SRTF - Preemptive SJF), Priority (Non-Preemptive), Priority (Preemptive), and Round Robin (RR).
 - **Dynamic Gantt Chart**: Flexbox-based visualization representing CPU execution with precise time markers and CPU idle state detection.
-- **Detailed Metrics**: Calculates Completion Time, Turnaround Time, and Waiting Time for each process, alongside Average Turnaround and Waiting times.
-- **Premium UI**: Built with a sleek Dark Mode aesthetic using Tailwind CSS.
+- **Detailed Metrics**: Calculates Completion/End Time, Turnaround Time, and Waiting Time for each process, alongside Average Turnaround and Waiting times.
+- **Simple UI**: Built with a sleek Dark Mode aesthetic using Tailwind CSS.
 
 ## Getting Started
 
