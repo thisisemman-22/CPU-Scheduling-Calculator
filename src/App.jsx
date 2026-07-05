@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Header from './components/Header';
 import InputPanel from './components/InputPanel';
 import OutputTable from './components/OutputTable';
@@ -10,14 +10,24 @@ function App() {
   const [timeQuantum, setTimeQuantum] = useState(2);
   const [processes, setProcesses] = useState([]);
   const [results, setResults] = useState({ gantt: [], metrics: {} });
-  
   const exportRef = useRef(null);
 
+  // Theme: persist to localStorage, default to dark
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem('cpu-scheduler-theme') || 'dark'; } catch { return 'dark'; }
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem('cpu-scheduler-theme', theme); } catch {}
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+
   const handleCalculate = () => {
+    const procs = processes.map(p => ({ ...p }));
     let res;
-    const procs = processes.map(p => ({...p}));
-    
-    switch(algorithm) {
+    switch (algorithm) {
       case 'FCFS': res = FCFS(procs); break;
       case 'SJF': res = SJF(procs); break;
       case 'SRTF': res = SRTF(procs); break;
@@ -35,34 +45,30 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-200 font-sans selection:bg-zinc-800">
-      <Header 
-        algorithm={algorithm} 
+    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] font-sans theme-transition">
+      <Header
+        algorithm={algorithm}
         setAlgorithm={setAlgorithm}
         timeQuantum={timeQuantum}
         setTimeQuantum={setTimeQuantum}
+        theme={theme}
+        toggleTheme={toggleTheme}
       />
-      
-      <main className="p-6 max-w-[1400px] mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-3">
-            <InputPanel 
-              processes={processes} 
+
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div className="lg:col-span-4 xl:col-span-3">
+            <InputPanel
+              processes={processes}
               setProcesses={setProcesses}
               onCalculate={handleCalculate}
               onClear={handleClear}
             />
           </div>
-          <div className="lg:col-span-9 flex flex-col min-h-[calc(100vh-120px)]">
-            <div ref={exportRef} className="flex-1 flex flex-col gap-0 pb-2">
-              <div className="flex-1 min-h-[400px] mb-1">
-                <OutputTable metrics={results.metrics} exportRef={exportRef} />
-              </div>
-              {results.gantt.length > 0 && (
-                <div className="mt-5 border-t border-white/5 pt-1">
-                  <GanttChart gantt={results.gantt} />
-                </div>
-              )}
+          <div className="lg:col-span-8 xl:col-span-9 flex flex-col gap-6">
+            <div ref={exportRef} className="flex flex-col gap-6">
+              <OutputTable metrics={results.metrics} exportRef={exportRef} />
+              {results.gantt.length > 0 && <GanttChart gantt={results.gantt} />}
             </div>
           </div>
         </div>
