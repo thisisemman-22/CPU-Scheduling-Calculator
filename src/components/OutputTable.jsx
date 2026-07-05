@@ -1,12 +1,18 @@
 import React from 'react';
+import { motion } from 'framer-motion';
+import { Download, FileText } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
-const OutputTable = ({ metrics }) => {
+const OutputTable = ({ metrics, exportRef }) => {
   const processList = Object.values(metrics);
   
   if (processList.length === 0) {
     return (
-      <div className="bg-dark-800 p-6 rounded-xl border border-dark-700 h-full flex items-center justify-center text-gray-500">
-        Run calculation to see metrics and output.
+      <div className="bg-zinc-900 p-6 rounded-lg border border-white/5 h-full flex flex-col items-center justify-center text-zinc-500">
+        <div className="w-12 h-12 rounded-full border border-dashed border-zinc-700 mb-4" />
+        <p className="text-sm font-medium text-zinc-400">Awaiting Data</p>
+        <p className="text-xs text-zinc-600 mt-1">Add processes and calculate to view metrics</p>
       </div>
     );
   }
@@ -14,51 +20,116 @@ const OutputTable = ({ metrics }) => {
   const avgTAT = processList.reduce((acc, p) => acc + p.tat, 0) / processList.length;
   const avgWT = processList.reduce((acc, p) => acc + p.wt, 0) / processList.length;
 
+  const handleExportCSV = () => {
+    let csv = "ID,AT,BT,Priority,ST,CT,TAT,WT\n";
+    processList.sort((a,b) => parseInt(a.id.substring(1)) - parseInt(b.id.substring(1))).forEach(p => {
+      csv += `${p.id},${p.at},${p.bt},${p.priority},${p.st},${p.ct},${p.tat},${p.wt}\n`;
+    });
+    csv += `\nAverage TAT,${avgTAT.toFixed(2)}\n`;
+    csv += `Average WT,${avgWT.toFixed(2)}\n`;
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cpu_scheduling_metrics.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleExportPDF = async () => {
+    if (!exportRef.current) return;
+    
+    const canvas = await html2canvas(exportRef.current, {
+      backgroundColor: '#09090b', // zinc-950
+      scale: 2,
+    });
+    
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: 'landscape',
+      unit: 'px',
+      format: [canvas.width, canvas.height]
+    });
+    
+    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+    pdf.save('cpu_scheduling_report.pdf');
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className="bg-dark-800 p-6 rounded-xl border border-dark-700 h-full flex flex-col">
-      <h2 className="text-lg font-semibold mb-4 text-neon-cyan">Output & Metrics</h2>
+    <div className="bg-zinc-900 p-6 rounded-lg border border-white/5 h-full flex flex-col shadow-sm">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-sm font-semibold text-zinc-100">Execution Metrics</h2>
+        
+        <div className="flex gap-2">
+          <button onClick={handleExportCSV} className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 p-1.5 rounded transition-colors" title="Export CSV">
+            <FileText size={16} />
+          </button>
+          <button onClick={handleExportPDF} className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 p-1.5 rounded transition-colors" title="Export PDF">
+            <Download size={16} />
+          </button>
+        </div>
+      </div>
       
       <div className="flex gap-4 mb-6">
-        <div className="flex-1 bg-dark-900 border border-dark-700 p-4 rounded-lg relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-neon-amber"></div>
-          <p className="text-xs text-gray-400 mb-1">Avg Turnaround Time</p>
-          <p className="text-2xl font-bold text-white">{avgTAT.toFixed(2)} <span className="text-sm font-normal text-gray-500">ms</span></p>
+        <div className="flex-1 bg-zinc-950 border border-white/5 p-4 rounded-md">
+          <p className="text-[10px] uppercase tracking-wider font-semibold text-zinc-500 mb-1">Average Turnaround</p>
+          <p className="text-xl font-mono text-zinc-100">{avgTAT.toFixed(2)} <span className="text-xs font-sans text-zinc-600">ms</span></p>
         </div>
-        <div className="flex-1 bg-dark-900 border border-dark-700 p-4 rounded-lg relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-neon-pink"></div>
-          <p className="text-xs text-gray-400 mb-1">Avg Waiting Time</p>
-          <p className="text-2xl font-bold text-white">{avgWT.toFixed(2)} <span className="text-sm font-normal text-gray-500">ms</span></p>
+        <div className="flex-1 bg-zinc-950 border border-white/5 p-4 rounded-md">
+          <p className="text-[10px] uppercase tracking-wider font-semibold text-zinc-500 mb-1">Average Waiting</p>
+          <p className="text-xl font-mono text-zinc-100">{avgWT.toFixed(2)} <span className="text-xs font-sans text-zinc-600">ms</span></p>
         </div>
       </div>
 
-      <div className="flex-grow overflow-auto">
-        <table className="w-full text-sm text-left text-gray-400">
-          <thead className="text-xs text-gray-500 bg-dark-900">
+      <div className="flex-grow overflow-auto pr-1">
+        <table className="w-full text-xs text-left">
+          <thead className="text-[10px] uppercase tracking-wider font-semibold text-zinc-500 sticky top-0 bg-zinc-900 z-10 border-b border-white/5">
             <tr>
-              <th className="px-3 py-3 rounded-tl-lg">ID</th>
-              <th className="px-3 py-3">AT</th>
-              <th className="px-3 py-3">BT</th>
-              <th className="px-3 py-3">Prio</th>
-              <th className="px-3 py-3">ST</th>
-              <th className="px-3 py-3">CT</th>
-              <th className="px-3 py-3">TAT</th>
-              <th className="px-3 py-3 rounded-tr-lg">WT</th>
+              <th className="py-2.5">ID</th>
+              <th className="py-2.5">AT</th>
+              <th className="py-2.5">BT</th>
+              <th className="py-2.5">Prio</th>
+              <th className="py-2.5 text-zinc-400">ST</th>
+              <th className="py-2.5 text-zinc-400">CT</th>
+              <th className="py-2.5 text-zinc-300">TAT</th>
+              <th className="py-2.5 text-zinc-300">WT</th>
             </tr>
           </thead>
-          <tbody>
+          <motion.tbody 
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            className="font-mono text-zinc-400"
+          >
             {processList.sort((a,b) => parseInt(a.id.substring(1)) - parseInt(b.id.substring(1))).map(p => (
-              <tr key={p.id} className="border-b border-dark-700 hover:bg-dark-700/50">
-                <td className="px-3 py-3 font-medium text-white">{p.id}</td>
-                <td className="px-3 py-3">{p.at}</td>
-                <td className="px-3 py-3">{p.bt}</td>
-                <td className="px-3 py-3">{p.priority}</td>
-                <td className="px-3 py-3 text-neon-emerald">{p.st}</td>
-                <td className="px-3 py-3 text-neon-cyan">{p.ct}</td>
-                <td className="px-3 py-3 text-neon-amber font-medium">{p.tat}</td>
-                <td className="px-3 py-3 text-neon-pink font-medium">{p.wt}</td>
-              </tr>
+              <motion.tr variants={itemVariants} key={p.id} className="border-b border-white/5 hover:bg-white/5">
+                <td className="py-3 font-sans font-medium text-zinc-200">{p.id}</td>
+                <td className="py-3">{p.at}</td>
+                <td className="py-3">{p.bt}</td>
+                <td className="py-3 text-zinc-600">{p.priority}</td>
+                <td className="py-3 text-zinc-300">{p.st}</td>
+                <td className="py-3 text-zinc-300">{p.ct}</td>
+                <td className="py-3 text-zinc-100">{p.tat}</td>
+                <td className="py-3 text-zinc-100">{p.wt}</td>
+              </motion.tr>
             ))}
-          </tbody>
+          </motion.tbody>
         </table>
       </div>
     </div>
